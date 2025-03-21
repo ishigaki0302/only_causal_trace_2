@@ -376,7 +376,7 @@ def read_knowlege(kind=None, arch="gpt2-xl"):
     #     knowledge_data = df.iterrows()
     # else:
     #     knowledge_data = enumerate(knowns)
-    for i, knowledge in knowledge_data:
+    for i, knowledge in enumerate(knowledge_data):
         # JSONフィルタに含まれていなければスキップ
         if i not in filtered_indices:
             continue
