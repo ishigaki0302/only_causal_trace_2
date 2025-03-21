@@ -81,12 +81,19 @@ parser = argparse.ArgumentParser(description="Causal Tracing 実験の設定")
 parser.add_argument("--model_name", type=str, required=True, help="使用するモデルの名前（例: meta-llama/Llama-3.2-3B）")
 parser.add_argument("--arch", type=str, required=True, help="アーキテクチャ（例: meta-llama_Llama-3.2-3B）")
 parser.add_argument("--archname", type=str, required=True, help="表示用アーキテクチャ名（例: Llama-3.2-3B）")
+# parser.add_argument(
+#     "--data_pattern",
+#     type=str,
+#     choices=["csv1", "csv2", "known"],
+#     default="csv1",
+#     help="データのパターンの選択: csv1: data/text_data_converted_to_csv.csv, csv2: data/en2jp_data.csv, known: KnownsDataset",
+# )
 parser.add_argument(
-    "--data_pattern",
+    "--dataset_type",
     type=str,
-    choices=["csv1", "csv2", "known"],
-    default="csv1",
-    help="データのパターンの選択: csv1: data/text_data_converted_to_csv.csv, csv2: data/en2jp_data.csv, known: KnownsDataset",
+    choices=["question", "ja_question", "prompt"],
+    default="question",
+    help="使用するデータセットの種類を選択します (question, ja_question, prompt)"
 )
 parser.add_argument(
     "--csv_file_path",
@@ -139,12 +146,15 @@ else:
     filtered_indices = list(range(1000))
 
 
-# データの読み込み
-if args.data_pattern in ["csv1", "csv2"]:
-    csv_file_path = args.csv_file_path
-    print(f"CSVファイルを読み込みます: {csv_file_path}")
-    df = pd.read_csv(csv_file_path)
-    data_source = "csv"
+# # データの読み込み
+# if args.data_pattern in ["csv1", "csv2"]:
+#     csv_file_path = args.csv_file_path
+#     print(f"CSVファイルを読み込みます: {csv_file_path}")
+#     df = pd.read_csv(csv_file_path)
+#     data_source = "csv"
+# JSONファイルの読み込み
+with open('data/known_1000_questions_ja.json', 'r', encoding='utf-8') as f:
+    knowledge_data = json.load(f)
 
 knowns = KnownsDataset(DATA_DIR)  # Dataset of known facts
 noise_level = 3 * collect_embedding_std(mt, [k["subject"] for k in knowns])
@@ -338,9 +348,9 @@ def plot_hidden_flow(
 
 def plot_all_flow(mt, prompt, subject=None, o="Seattle", noise=0.1, modelname=None, savepdf=None, kind=None):
     if kind is None:
-        savepdf=f"hidden_{savepdf}"
+        savepdf=f"hidden_{savepdf}_{args.dataset_type}"
     else:
-        savepdf=f"{kind}_{savepdf}"
+        savepdf=f"{kind}_{savepdf}_{args.dataset_type}"
     result = plot_hidden_flow(
         mt, prompt, subject, o, modelname=modelname, noise=noise, kind=kind, savepdf=f'result_pdf/{dt_now}/{savepdf}'
     )
@@ -362,16 +372,17 @@ def read_knowlege(kind=None, arch="gpt2-xl"):
     ) = [Avg() for _ in range(11)]
     # 以下、CSVデータから causal tracing を実施する部分
     all_flow_data = []
-    if args.data_pattern in ["csv1", "csv2"]:
-        knowledge_data = df.iterrows()
-    else:
-        knowledge_data = enumerate(knowns)
+    # if args.data_pattern in ["csv1", "csv2"]:
+    #     knowledge_data = df.iterrows()
+    # else:
+    #     knowledge_data = enumerate(knowns)
     for i, knowledge in knowledge_data:
         # JSONフィルタに含まれていなければスキップ
         if i not in filtered_indices:
             continue
-
-        prompt = knowledge["prompt"] # 穴埋め形式の英語
+        
+        prompt = knowledge[args.dataset_type]
+        # prompt = knowledge["prompt"] # 穴埋め形式の英語
         # new_prompt = knowledge["prompt"] # 質問形式の日本語
         # new_prompt = knowledge["new_prompt"] # 質問形式の英語
         subject = knowledge["subject"]
@@ -531,12 +542,12 @@ for kind in [None, "mlp", "attn"]:
         low_score=0.0,
         high_score=high_score,
         archname=archname,
-        savepdf=f"results/{arch}/causal_trace/summary_pdfs/rollup{kindcode}.pdf",
+        savepdf=f"results/{arch}/causal_trace/summary_pdfs/rollup{kindcode}_{args.dataset_type}.pdf",
     )
     df_all_flow_data = pd.DataFrame(d["all_flow_data"])
     if not os.path.exists(f"data/all_flow_data/"):
         os.makedirs(f"data/all_flow_data/")
-    df_all_flow_data.to_csv(f"data/all_flow_data/{arch}{kindcode}.csv", index=False)
+    df_all_flow_data.to_csv(f"data/all_flow_data/{arch}{kindcode}_{args.dataset_type}.csv", index=False)
 
 labels = [
     "First subject token",
@@ -578,7 +589,7 @@ for j, (kind, title) in enumerate(
     # axes[j].set_ylim(0.1, 0.3)
 axes[1].legend(frameon=False)
 plt.tight_layout()
-savepdf = f"results/{arch}/causal_trace/summary_pdfs/lineplot-causaltrace.pdf"
+savepdf = f"results/{arch}/causal_trace/summary_pdfs/lineplot-causaltrace_{args.dataset_type}.pdf"
 os.makedirs(os.path.dirname(savepdf), exist_ok=True)
 plt.savefig(savepdf)
 image = Image.open(savepdf)
