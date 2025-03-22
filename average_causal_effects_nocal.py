@@ -29,8 +29,9 @@ plt.rcParams["mathtext.fontset"] = "dejavuserif"
 # arch = 'EleutherAI_gpt-neox-20b'
 # archname = 'GPT-NeoX-20B'
 
-arch = "Ryoma0302_gpt_0.76B_global_step20000_japanese"
-archname = "transformer"
+arch = "meta-llama_Llama-3.2-3B"
+archname = "Llama-3.2-3B"
+dataset_type = "question"
 
 dt_now = datetime.datetime.now()
 data_len = 500
@@ -240,7 +241,7 @@ for kind in [None, "mlp", "attn"]:
         low_score=0.0,
         high_score=high_score,
         archname=archname,
-        savepdf=f"results/{arch}/causal_trace/summary_pdfs/rollup{kindcode}.png",
+        savepdf=f"results/{arch}/causal_trace/summary_pdfs/rollup{kindcode}_{dataset_type}.pdf",
     )
 
 labels = [
@@ -270,9 +271,15 @@ for j, (kind, title) in enumerate(
 ):
     print(f"Reading {kind}")
     if kind is None:
-        data_path = f"data/all_flow_data/{arch}.csv"
+        if dataset_type:
+            data_path = f"data/all_flow_data/{arch}_{dataset_type}.csv"
+        else:
+            data_path = f"data/all_flow_data/{arch}.csv"
     else:
-        data_path = f"data/all_flow_data/{arch}_{kind}.csv"
+        if dataset_type:
+             data_path = f"data/all_flow_data/{arch}_{kind}_{dataset_type}.csv"   
+        else:
+            data_path = f"data/all_flow_data/{arch}_{kind}.csv"
     all_flow_data = read_all_flow_data(data_path)
     d = read_knowlege(the_count, kind, arch, all_flow_data)
     for i, label in list(enumerate(labels)):
@@ -292,6 +299,6 @@ for j, (kind, title) in enumerate(
     # axes[j].set_ylim(0.1, 0.3)
 axes[1].legend(frameon=False)
 plt.tight_layout()
-savepdf = f"results/{arch}/causal_trace/summary_pdfs/lineplot-causaltrace.pdf"
+savepdf = f"results/{arch}/causal_trace/summary_pdfs/lineplot-causaltrace_{dataset_type}.pdf"
 os.makedirs(os.path.dirname(savepdf), exist_ok=True)
 plt.savefig(savepdf)

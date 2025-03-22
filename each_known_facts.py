@@ -42,7 +42,15 @@ def predict_from_input(model, inp):
     return preds, p
 
 def predict_from_input_jp(model, inp):
-    output_ids = model.generate(**inp, max_new_tokens=50)
+    # output_ids = model.generate(**inp, max_new_tokens=50)
+    output_ids = model.generate(
+        **inp,
+        max_new_tokens=50,
+        do_sample=True,
+        top_p=0.95,
+        temperature=0.7,
+        repetition_penalty=1.1
+    )
     return output_ids
 
 def process_dataset(data_iter, dataset_label, model_name, mt, input_key):
@@ -64,13 +72,48 @@ def process_dataset(data_iter, dataset_label, model_name, mt, input_key):
             continue
         input_text = knowledge[input_key]
 
+        # # 日本語モデルの場合、[INST] タグで囲む
+        # if model_name in ["rinna/japanese-gpt-neox-3.6b", "SakanaAI/TinySwallow-1.5B"]:
+        #     input_text = f"[INST]{input_text}[/INST]"
         # モデル入力の作成
         inputs = make_inputs(mt.tokenizer, [input_text])
         
         try:
-            if model_name in ["rinna/japanese-gpt-neox-3.6b", "SakanaAI/TinySwallow-1.5B"]:
-                predictions = predict_from_input_jp(mt.model, inputs)
-                output = mt.tokenizer.decode(predictions[0], skip_special_tokens=True)
+            # if model_name in ["rinna/japanese-gpt-neox-3.6b", "SakanaAI/TinySwallow-1.5B"]:
+            #     predictions = predict_from_input_jp(mt.model, inputs)
+            #     output = mt.tokenizer.decode(predictions[0], skip_special_tokens=True)
+            if model_name in ["rinna/japanese-gpt-neox-3.6b"]:
+                token_ids = mt.tokenizer.encode(f"Q: {input_text}\nA:", add_special_tokens=False, return_tensors="pt")
+                with torch.no_grad():
+                    output_ids = mt.model.generate(
+                        token_ids.to(mt.model.device),
+                        max_new_tokens=100,
+                        min_new_tokens=100,
+                        do_sample=True,
+                        temperature=0.8,
+                        pad_token_id=mt.tokenizer.pad_token_id,
+                        bos_token_id=mt.tokenizer.bos_token_id,
+                        eos_token_id=mt.tokenizer.eos_token_id
+                    )
+                output = mt.tokenizer.decode(output_ids.tolist()[0])
+                print(output)
+            elif model_name in ["SakanaAI/TinySwallow-1.5B"]:
+                # TinySwallow 用の出力形式（Q&A形式でプロンプトを組む）
+                prompt = f"Q: {input_text}\nA:"
+                token_ids = mt.tokenizer.encode(prompt, add_special_tokens=False, return_tensors="pt")
+                with torch.no_grad():
+                    output_ids = mt.model.generate(
+                        token_ids.to(mt.model.device),
+                        max_new_tokens=100,
+                        min_new_tokens=100,
+                        do_sample=True,
+                        temperature=0.8,
+                        pad_token_id=mt.tokenizer.pad_token_id or mt.tokenizer.eos_token_id,
+                        bos_token_id=mt.tokenizer.bos_token_id,
+                        eos_token_id=mt.tokenizer.eos_token_id
+                    )
+                output = mt.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+                print(output)
             else:
                 preds, _ = predict_from_input(mt.model, inputs)
                 output = decode_tokens(mt.tokenizer, [preds])[0]
@@ -120,7 +163,6 @@ for config in model_dataset_config:
         model_name,
         torch_dtype=(torch.float16 if "20b" in model_name else None),
     )
-    
     # 各サンプルの処理
     model_results = process_dataset(data_iter, dataset_label, model_name, mt, input_key)
     all_results[model_name] = {
