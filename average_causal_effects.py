@@ -135,7 +135,10 @@ if model_name in json_results:
     for sample_key, sample_data in model_json_results.items():
         attribute = sample_data["attribute"]
         output = sample_data["output"]
-        if attribute in output:
+        if json_results[model_name]["input_key"] == "ja_question":
+            idx = int(sample_key.split("_")[1])
+            filtered_indices.append(idx)
+        elif attribute in output:
             # sample_keyは "sample_i" となっているので、iを抽出
             idx = int(sample_key.split("_")[1])
             filtered_indices.append(idx)
@@ -549,47 +552,47 @@ for kind in [None, "mlp", "attn"]:
         os.makedirs(f"data/all_flow_data/")
     df_all_flow_data.to_csv(f"data/all_flow_data/{arch}{kindcode}_{args.dataset_type}.csv", index=False)
 
-labels = [
-    "First subject token",
-    "Middle subject tokens",
-    "Last subject token",
-    "First subsequent token",
-    "Further tokens",
-    "Last token",
-]
-color_order = [0, 1, 2, 4, 5, 3]
-x = None
+# labels = [
+#     "First subject token",
+#     "Middle subject tokens",
+#     "Last subject token",
+#     "First subsequent token",
+#     "Further tokens",
+#     "Last token",
+# ]
+# color_order = [0, 1, 2, 4, 5, 3]
+# x = None
 
-cmap = plt.get_cmap("tab10")
-fig, axes = plt.subplots(1, 3, figsize=(13, 3.5), sharey=True, dpi=200)
-for j, (kind, title) in enumerate(
-    [
-        (None, "single hidden vector"),
-        ("mlp", "run of 10 MLP lookups"),
-        ("attn", "run of 10 Attn modules"),
-    ]
-):
-    print(f"Reading {kind}")
-    # d = read_knowlege(225, kind, arch)
-    d = read_knowlege(kind, arch)
-    for i, label in list(enumerate(labels)):
-        y = d["result"][i] - d["low_score"]
-        if x is None:
-            x = list(range(len(y)))
-        std = d["result_std"][i]
-        error = std * 1.96 / math.sqrt(count)
-        axes[j].fill_between(
-            x, y - error, y + error, alpha=0.3, color=cmap.colors[color_order[i]]
-        )
-        axes[j].plot(x, y, label=label, color=cmap.colors[color_order[i]])
+# cmap = plt.get_cmap("tab10")
+# fig, axes = plt.subplots(1, 3, figsize=(13, 3.5), sharey=True, dpi=200)
+# for j, (kind, title) in enumerate(
+#     [
+#         (None, "single hidden vector"),
+#         ("mlp", "run of 10 MLP lookups"),
+#         ("attn", "run of 10 Attn modules"),
+#     ]
+# ):
+#     print(f"Reading {kind}")
+#     # d = read_knowlege(225, kind, arch)
+#     d = read_knowlege(kind, arch)
+#     for i, label in list(enumerate(labels)):
+#         y = d["result"][i] - d["low_score"]
+#         if x is None:
+#             x = list(range(len(y)))
+#         std = d["result_std"][i]
+#         error = std * 1.96 / math.sqrt(count)
+#         axes[j].fill_between(
+#             x, y - error, y + error, alpha=0.3, color=cmap.colors[color_order[i]]
+#         )
+#         axes[j].plot(x, y, label=label, color=cmap.colors[color_order[i]])
 
-    axes[j].set_title(f"Average indirect effect of a {title}")
-    axes[j].set_ylabel("Average indirect effect on p(o)")
-    axes[j].set_xlabel(f"Layer number in {archname}")
-    # axes[j].set_ylim(0.1, 0.3)
-axes[1].legend(frameon=False)
-plt.tight_layout()
-savepdf = f"results/{arch}/causal_trace/summary_pdfs/lineplot-causaltrace_{args.dataset_type}.pdf"
-os.makedirs(os.path.dirname(savepdf), exist_ok=True)
-plt.savefig(savepdf)
-image = Image.open(savepdf)
+#     axes[j].set_title(f"Average indirect effect of a {title}")
+#     axes[j].set_ylabel("Average indirect effect on p(o)")
+#     axes[j].set_xlabel(f"Layer number in {archname}")
+#     # axes[j].set_ylim(0.1, 0.3)
+# axes[1].legend(frameon=False)
+# plt.tight_layout()
+# savepdf = f"results/{arch}/causal_trace/summary_pdfs/lineplot-causaltrace_{args.dataset_type}.pdf"
+# os.makedirs(os.path.dirname(savepdf), exist_ok=True)
+# plt.savefig(savepdf)
+# image = Image.open(savepdf)

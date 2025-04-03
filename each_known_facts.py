@@ -22,14 +22,14 @@ model_dataset_config = [
         "model_name": "SakanaAI/TinySwallow-1.5B",
         "dataset_type": "ja_question"
     },
-    {
-        "model_name": "EleutherAI/gpt-j-6B",
-        "dataset_type": "prompt"
-    },
-    {
-        "model_name": "meta-llama/Llama-3.2-3B",
-        "dataset_type": "prompt"
-    }
+    # {
+    #     "model_name": "EleutherAI/gpt-j-6B",
+    #     "dataset_type": "prompt"
+    # },
+    # {
+    #     "model_name": "meta-llama/Llama-3.2-3B",
+    #     "dataset_type": "prompt"
+    # }
 ]
 
 # ---------------------------

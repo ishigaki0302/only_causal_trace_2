@@ -20,8 +20,8 @@ plt.rcParams["mathtext.fontset"] = "dejavuserif"
 # archname = 'GPT-J-6B'
 
 # arch = 'rinna_japanese-gpt-neox-3.6b-instruction-sft'
-# arch = "rinna_japanese-gpt-neox-3.6b"
-# archname = 'GPT-NEOX-3.6B'
+arch = "rinna_japanese-gpt-neox-3.6b"
+archname = 'GPT-NEOX-3.6B'
 
 # arch = "cyberagent_open-calm-7b"
 # archname = 'GPT-NEOX'
@@ -29,12 +29,16 @@ plt.rcParams["mathtext.fontset"] = "dejavuserif"
 # arch = 'EleutherAI_gpt-neox-20b'
 # archname = 'GPT-NeoX-20B'
 
-arch = "meta-llama_Llama-3.2-3B"
-archname = "Llama-3.2-3B"
-dataset_type = "question"
+# arch = "meta-llama_Llama-3.2-3B"
+# archname = "Llama-3.2-3B"
+# dataset_type = "question"
+
+# arch = "SakanaAI_TinySwallow-1.5B"
+# archname = "TinySwallow-1.5B"
+dataset_type = "ja_question"
 
 dt_now = datetime.datetime.now()
-data_len = 500
+# data_len = 500
 '''''
 使うときは,
 experiments.causal_traceのpredict_from_input
@@ -68,7 +72,7 @@ class Avg:
     def size(self):
         return sum(datum.shape[0] for datum in self.d)
 
-def read_knowlege(count=150, kind=None, arch="gpt2-xl", all_flow_data=[]):
+def read_knowlege(all_flow_data):
     (
         avg_fe,
         avg_ee,
@@ -82,7 +86,7 @@ def read_knowlege(count=150, kind=None, arch="gpt2-xl", all_flow_data=[]):
         avg_fle,
         avg_fla,
     ) = [Avg() for _ in range(11)]
-    for i, data in enumerate(all_flow_data[:data_len]):
+    for i, data in enumerate(all_flow_data):
         scores = data["scores"].to('cpu')
         first_e, first_a = data["subject_range"]
         last_e = first_a - 1
@@ -205,18 +209,18 @@ def plot_array(
     plt.show()
 
 
-the_count = data_len
-count = data_len
+# the_count = data_len
+# count = data_len
 high_score = None  # Scale all plots according to the y axis of the first plot
 
 for kind in [None, "mlp", "attn"]:
 # for kind in ["mlp", "attn"]:
     if kind is None:
-        data_path = f"data/all_flow_data/{arch}.csv"
+        data_path = f"data/all_flow_data/{arch}_{dataset_type}.csv"
     else:
-        data_path = f"data/all_flow_data/{arch}_{kind}.csv"
+        data_path = f"data/all_flow_data/{arch}_{kind}_{dataset_type}.csv"
     all_flow_data = read_all_flow_data(data_path)
-    d = read_knowlege(the_count, kind, arch, all_flow_data)
+    d = read_knowlege(all_flow_data)
     count = d["size"]
     # what = {
     #     None: "Indirect Effect of $h_i^{(l)}$",
@@ -281,7 +285,7 @@ for j, (kind, title) in enumerate(
         else:
             data_path = f"data/all_flow_data/{arch}_{kind}.csv"
     all_flow_data = read_all_flow_data(data_path)
-    d = read_knowlege(the_count, kind, arch, all_flow_data)
+    d = read_knowlege(all_flow_data)
     for i, label in list(enumerate(labels)):
         y = d["result"][i] - d["low_score"]
         if x is None:
